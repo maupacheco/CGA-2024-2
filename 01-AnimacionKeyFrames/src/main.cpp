@@ -55,6 +55,9 @@ Shader shader;
 Shader shaderSkybox;
 //Shader con multiples luces
 Shader shaderMulLighting;
+//Shader con multiples texturas
+Shader shaderMulLightingMT;
+
 
 std::shared_ptr<FirstPersonCamera> camera(new FirstPersonCamera());
 
@@ -90,6 +93,12 @@ Model modelDartLegoLeftHand;
 Model modelDartLegoRightHand;
 Model modelDartLegoLeftLeg;
 Model modelDartLegoRightLeg;
+
+// Two new models
+Model modelBatmanArmored;
+Model modelBatmanCape;
+Model modelDanteDMC;
+
 
 //Buzz right
 Model modelBuzzRightWing2;
@@ -143,6 +152,8 @@ glm::mat4 modelMatrixHeli = glm::mat4(1.0f);
 glm::mat4 modelMatrixLambo = glm::mat4(1.0);
 glm::mat4 modelMatrixAircraft = glm::mat4(1.0);
 glm::mat4 modelMatrixDart = glm::mat4(1.0f);
+glm::mat4 modelMatrixBatmanArmored = glm::mat4(1.0f);
+glm::mat4 modelMatrixDanteDMC = glm::mat4(1.0f);
 glm::mat4 modelMatrixBuzz = glm::mat4(1.0f);
 
 //rOTACION VADER
@@ -270,6 +281,7 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	shader.initialize("../Shaders/colorShader.vs", "../Shaders/colorShader.fs");
 	shaderSkybox.initialize("../Shaders/skyBox.vs", "../Shaders/skyBox.fs");
 	shaderMulLighting.initialize("../Shaders/iluminacion_texture_res.vs", "../Shaders/multipleLights.fs");
+	shaderMulLightingMT.initialize("../Shaders/iluminacion_texture_res.vs", "../Shaders/multipleLights_mt.fs");
 
 	// Inicializacion de los objetos.
 	skyboxSphere.init();
@@ -289,7 +301,7 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	boxLandingPad.setShader(&shaderMulLighting);
 
 	esfera1.init();
-	esfera1.setShader(&shaderMulLighting);
+	esfera1.setShader(&shaderMulLightingMT);
 
 	modelRock.loadModel("../models/rock/rock.obj");
 	modelRock.setShader(&shaderMulLighting);
@@ -348,6 +360,15 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	modelDartLegoLeftLeg.setShader(&shaderMulLighting);
 	modelDartLegoRightLeg.loadModel("../models/LegoDart/LeoDart_right_leg.obj");
 	modelDartLegoRightLeg.setShader(&shaderMulLighting);
+
+	
+	//Two New Models
+	modelBatmanArmored.loadModel("../models/Batman/BatmanArmoured2.obj");
+	modelBatmanArmored.setShader(&shaderMulLighting);
+	modelBatmanCape.loadModel("../models/Batman/Cape2.obj");
+	modelBatmanCape.setShader(&shaderMulLighting);
+	modelDanteDMC.loadModel("../models/Dante/dante/001.obj");
+	modelDanteDMC.setShader(&shaderMulLighting);
 
 	//MODELO BUZZLIGHT YEAR
 	
@@ -566,6 +587,7 @@ void destroy() {
 	shader.destroy();
 	shaderMulLighting.destroy();
 	shaderSkybox.destroy();
+	shaderMulLightingMT.destroy();
 
 	// Basic objects Delete
 	skyboxSphere.destroy();
@@ -600,6 +622,10 @@ void destroy() {
 	modelLamboRearRightWheel.destroy();
 	modelLamboRightDor.destroy();
 	modelRock.destroy();
+	//Modelos Extras
+	modelBatmanArmored.destroy();
+	modelBatmanCape.destroy();
+	modelDanteDMC.destroy();
 
 	//Buzz
 	modelBuzzRightWing2.destroy();
@@ -972,6 +998,13 @@ void applicationLoop() {
 		shaderMulLighting.setMatrix4("view", 1, false,
 				glm::value_ptr(view));
 
+		// Settea la matriz de vista y projection al shader con multiples texturas
+		shaderMulLightingMT.setMatrix4("projection", 1, false,
+					glm::value_ptr(projection));
+		shaderMulLightingMT.setMatrix4("view", 1, false,
+				glm::value_ptr(view));
+
+
 		/*******************************************
 		 * Propiedades Luz direccional
 		 *******************************************/
@@ -981,15 +1014,23 @@ void applicationLoop() {
 		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.9, 0.9, 0.9)));
 		shaderMulLighting.setVectorFloat3("directionalLight.direction", glm::value_ptr(glm::vec3(-1.0, 0.0, 0.0)));
 
+		shaderMulLightingMT.setVectorFloat3("viewPos", glm::value_ptr(camera->getPosition()));
+		shaderMulLightingMT.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
+		shaderMulLightingMT.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.7, 0.7, 0.7)));
+		shaderMulLightingMT.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.9, 0.9, 0.9)));
+		shaderMulLightingMT.setVectorFloat3("directionalLight.direction", glm::value_ptr(glm::vec3(-1.0, 0.0, 0.0)));
+
 		/*******************************************
 		 * Propiedades SpotLights
 		 *******************************************/
 		shaderMulLighting.setInt("spotLightCount", 0);
+		shaderMulLightingMT.setInt("spotLightCount", 0);
 
 		/*******************************************
 		 * Propiedades PointLights
 		 *******************************************/
 		shaderMulLighting.setInt("pointLightCount", 0);
+		shaderMulLightingMT.setInt("pointLightCount", 0);
 
 		/*******************************************
 		 * Cesped
@@ -1087,8 +1128,13 @@ void applicationLoop() {
 		 * Esfera 1
 		*********************************************/
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureHighwayID);
-		shaderMulLighting.setInt("texture1", 0);
+		glBindTexture(GL_TEXTURE_2D, textureHighwayID); // cambiar water
+		shaderMulLightingMT.setInt("texture2", 0);
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, textureWindowID); // cambiar sponge
+		shaderMulLightingMT.setInt("texture1", 3);
+
+
 		esfera1.setScale(glm::vec3(3.0, 3.0, 3.0));
 		esfera1.setPosition(glm::vec3(3.0f, 2.0f, -10.0f));
 		esfera1.render();
@@ -1232,6 +1278,19 @@ void applicationLoop() {
 		modelDartLegoRightLeg.render(modelMatrixDartRightLeg);
 		// Se regresa el cull faces IMPORTANTE para la capa
 		glEnable(GL_CULL_FACE);
+
+		//Rendering Batman and Dante Models
+		glm::mat4 modelMatrixBatmanArmoredBody = glm::mat4(modelMatrixBatmanArmored);
+		modelMatrixBatmanArmoredBody = glm::translate(modelMatrixBatmanArmoredBody, glm::vec3(-17.0, 0.03, 0.0));
+		modelMatrixBatmanArmoredBody = glm::scale(modelMatrixBatmanArmoredBody, glm::vec3(0.7f));
+		modelBatmanArmored.render(modelMatrixBatmanArmoredBody);
+		modelBatmanCape.render(modelMatrixBatmanArmoredBody);
+
+		glm::mat4 modelMatrixDanteDMCBody = glm::mat4(modelMatrixDanteDMC);
+		modelMatrixDanteDMCBody = glm::translate(modelMatrixDanteDMCBody,glm::vec3(-32.0, 0.03, 0.0));
+		modelMatrixDanteDMCBody = glm::scale(modelMatrixDanteDMCBody,glm::vec3(0.4f));
+		modelDanteDMC.render(modelMatrixDanteDMCBody);
+
 
 		/*******************************************
 		 * BUZZLIGHTYEAR
