@@ -6,11 +6,13 @@ struct Light {
     vec3 specular;
 };
 
+//Sol
 struct  DirectionalLight{
     vec3 direction;
     Light light;
 };
 
+//Foco
 struct  PointLight{
     vec3 position;
     
@@ -21,6 +23,7 @@ struct  PointLight{
     float quadratic;
 };
 
+//linterna
 struct  SpotLight{
 	vec3 position;
 	vec3 direction;
