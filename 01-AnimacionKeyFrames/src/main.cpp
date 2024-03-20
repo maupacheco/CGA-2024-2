@@ -1,10 +1,4 @@
-/*
-* Práctica 1
-* Computación Gráfica Avanzada
-* Integrantes:
-* 	- Pacheco Salgado Mauricio
-*	- Aranza Abril Núñez Luna
-*/
+
 
 #define _USE_MATH_DEFINES
 #include <cmath>
