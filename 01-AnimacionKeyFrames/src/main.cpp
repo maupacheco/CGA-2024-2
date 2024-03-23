@@ -1109,7 +1109,7 @@ void applicationLoop() {
 		shaderMulLightingMT.setInt("spotLightCount", 0);
 
 		/*******************************************
-		 * Propiedades PointLights con texturas
+		 * Propiedades PointLights con multiples texturas
 		 *******************************************/
 
 		shaderMulLightingMT.setInt("pointLightCount", 0);

@@ -63,6 +63,8 @@ Box boxWalls;
 Box boxHighway;
 Box boxLandingPad;
 Sphere esfera1(10, 10);
+Cylinder rayModel (10,10,1.0,1.0,1.0);
+
 // Models complex instances
 Model modelRock;
 Model modelAircraft;
@@ -216,6 +218,14 @@ std::vector<float> lamp2Orientation = {
 double deltaTime;
 double currTime, lastTime;
 
+//Variables de salto
+// Variables para el salto
+bool isJump = false;
+float GRAVITY = 1.81;
+//Se cambiaron a double por el tiempo, que regresa como double cuando lo leemos
+double tmv = 0.0;
+double startTimeJump = 0.0;
+
 // Variables animacion maquina de estados eclipse
 const float avance = 0.1;
 const float giroEclipse = 0.5f;
@@ -295,6 +305,10 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	skyboxSphere.init();
 	skyboxSphere.setShader(&shaderSkybox);
 	skyboxSphere.setScale(glm::vec3(20.0f, 20.0f, 20.0f));
+
+	rayModel.init();
+	rayModel.setShader(&shader);
+	rayModel.setColor(glm::vec4(1.0));
 
 	boxCesped.init();
 	boxCesped.setShader(&shaderMulLighting);
@@ -668,6 +682,7 @@ void destroy() {
 	boxHighway.destroy();
 	boxLandingPad.destroy();
 	esfera1.destroy();
+	
 
 	// Custom objects Delete
 	modelAircraft.destroy();
@@ -706,6 +721,7 @@ void destroy() {
 	cowboyModelAnimate.destroy();
 	guardianModelAnimate.destroy();
 	cyborgModelAnimate.destroy();
+	rayModel.destroy();
 
 	// Terrains objects Delete
 	terrain.destroy();
@@ -933,6 +949,13 @@ bool processInput(bool continueApplication) {
 	else if (modelSelected == 0 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
 		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0.0, 0.0, -0.02));
 		animationMayowIndex = 0;
+	}
+	bool keySpaceStatus = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
+	if(keySpaceStatus && !isJump){
+		std::cout << "Saltando" << std::endl;
+		startTimeJump = currTime;
+		tmv = 0;
+		isJump = true;
 	}
 
 	glfwPollEvents();
@@ -1347,7 +1370,15 @@ void applicationLoop() {
 		modelMatrixMayow[0] = glm::vec4(ejex, 0.0);
 		modelMatrixMayow[1] = glm::vec4(ejey, 0.0);
 		modelMatrixMayow[2] = glm::vec4(ejez, 0.0);
-		modelMatrixMayow[3][1] = terrain.getHeightTerrain(modelMatrixMayow[3][0], modelMatrixMayow[3][2]);
+		float alturaActual = terrain.getHeightTerrain(modelMatrixMayow[3][0], modelMatrixMayow[3][2]);
+		//3.9 es la velocidad de salto de altura
+		modelMatrixMayow[3][1] = -4 * tmv * tmv + 3.9 * tmv + alturaActual;
+		tmv = currTime - startTimeJump;
+		if(modelMatrixMayow[3][1] < alturaActual){
+			isJump = false;
+			modelMatrixMayow[3][1] = alturaActual;
+		}
+		//modelMatrixMayow[3][1] = terrain.getHeightTerrain(modelMatrixMayow[3][0], modelMatrixMayow[3][2]);
 		glm::mat4 modelMatrixMayowBody = glm::mat4(modelMatrixMayow);
 		modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021f));
 		mayowModelAnimate.setAnimationIndex(animationMayowIndex);
@@ -1385,6 +1416,23 @@ void applicationLoop() {
 		skyboxSphere.render();
 		glCullFace(oldCullFaceMode);
 		glDepthFunc(oldDepthFuncMode);
+
+		glm::mat4 modelMatrixRayMay = glm::mat4(modelMatrixMayow);
+		modelMatrixRayMay = glm::translate(modelMatrixRayMay, glm::vec3(0,1,0));
+		float maxDistanceRay = 15.0;
+		//dirección del rayo 2 es en el eje z y 3 es posicion
+		glm::vec3 rayDirection = modelMatrixRayMay[2];
+		glm::vec3 ori = modelMatrixRayMay[3];
+		glm::vec3 rmd = ori + rayDirection * (maxDistanceRay / 2.0f);
+		glm::vec3 targetRay = ori + rayDirection * maxDistanceRay;
+		//cilindro en el punto medio
+		modelMatrixRayMay[3] = glm::vec4(rmd,1.0);
+		//Se rota para que no aparezca vertical
+		modelMatrixRayMay = glm::rotate(modelMatrixRayMay, glm::radians(90.0f),glm::vec3(1,0,0));
+		//Longitud del rayo
+		modelMatrixRayMay = glm::scale(modelMatrixRayMay, glm::vec3(0.05, maxDistanceRay, 0.05));
+		//Renderizacion
+		rayModel.render(modelMatrixRayMay);
 
 		
 		// Animaciones por keyframes dart Vader
