@@ -64,6 +64,7 @@ Box boxCesped;
 Box boxWalls;
 Box boxHighway;
 Box boxLandingPad;
+Box boxCollider;
 Sphere esfera1(10, 10);
 
 Sphere sphereCollider(10,10);
@@ -319,6 +320,10 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	sphereCollider.init();
 	sphereCollider.setShader(&shader);
 	sphereCollider.setColor(glm::vec4(0.5,0.5,0.5,1.0));
+
+	boxCollider.init();
+	boxCollider.setShader(&shader);
+	boxCollider.setColor(glm::vec4(0.3, 0.0, 0.3, 1.0));
 
 	rayModel.init();
 	rayModel.setShader(&shader);
@@ -696,6 +701,8 @@ void destroy() {
 	boxHighway.destroy();
 	boxLandingPad.destroy();
 	esfera1.destroy();
+	boxCollider.destroy();
+	sphereCollider.destroy();
 	
 
 	// Custom objects Delete
@@ -1434,7 +1441,7 @@ void applicationLoop() {
 		/* Creacion de colliders */
 
 
-		//Roca
+		//Roca Creacion de collider
 		AbstractModel::SBB rockCollider;
 		glm::mat4 modelMatrixColliderRock = glm::mat4(matrixModelRock);
 		modelMatrixColliderRock = glm::scale(modelMatrixColliderRock, glm::vec3(1.0));
@@ -1442,6 +1449,122 @@ void applicationLoop() {
 		rockCollider.c = modelMatrixColliderRock[3];
 		rockCollider.ratio = modelRock.getSbb().ratio * 1.0;
 		addOrUpdateColliders(collidersSBB, "rock", rockCollider, matrixModelRock);
+
+		//Creacion de collider OBB
+		
+		AbstractModel::OBB aircraftCollider;
+		glm::mat4 modelMatrixAircraftCollider = glm::mat4(modelMatrixAircraft);
+		aircraftCollider.u = glm::quat_cast(modelMatrixAircraftCollider);
+		modelMatrixAircraftCollider = glm::scale(modelMatrixAircraftCollider, glm::vec3(1.0));
+		modelMatrixAircraftCollider = glm::translate(modelMatrixAircraftCollider, modelAircraft.getObb().c);
+		aircraftCollider.c= modelMatrixAircraftCollider[3];
+		aircraftCollider.e= modelAircraft.getObb().e * glm::vec3(1.0);
+		addOrUpdateColliders(collidersOBB, "aircraft",aircraftCollider, modelMatrixAircraft);
+
+		//Collider Darth Vader
+		AbstractModel::OBB dartLegoBodyCollider;
+		glm::mat4 modelMatrixDartCollider = glm::mat4(modelMatrixDart);
+		//Colocar la orientación del collider antes de hacer un escalamiento
+		//Converir e cuaternion la matriz de Dart
+		dartLegoBodyCollider.u= glm::quat_cast(modelMatrixDartCollider);
+		modelMatrixDartCollider = glm::scale(modelMatrixDartCollider, glm::vec3(0.5));
+		//Copiar donde esta colocado el centro de Darth Vader. Este proceso se debe repetir para todos los modelos
+		modelMatrixDartCollider = glm::translate(modelMatrixDartCollider, modelDartLegoBody.getObb().c);
+		dartLegoBodyCollider.c = modelMatrixDartCollider[3];
+		//Se le aplican las dimensiones (e)
+		dartLegoBodyCollider.e = modelDartLegoBody.getObb().e * glm::vec3(0.5);
+		//Los parametros son (map de colliders, llave del modelo, trans collider, trans modelo)
+		addOrUpdateColliders(collidersOBB,"dart",dartLegoBodyCollider,modelMatrixDart);
+
+		// Lamp1 colliders
+		for (int i = 0; i < lamp1Position.size(); i++){
+			AbstractModel::OBB lampCollider;
+			glm::mat4 modelMatrixColliderLamp = glm::mat4(1.0);
+			modelMatrixColliderLamp = glm::translate(modelMatrixColliderLamp, lamp1Position[i]);
+			modelMatrixColliderLamp = glm::rotate(modelMatrixColliderLamp, glm::radians(lamp1Orientation[i]), glm::vec3(0,1,0));
+			//glm::mat4 modelMatrixColliderLamp = glm::mat4(modelMatrixColliderLamp);
+			addOrUpdateColliders(collidersOBB, "lamp1-" + std::to_string(i), lampCollider, modelMatrixColliderLamp);
+
+			lampCollider.u = glm::quat_cast(modelMatrixColliderLamp);
+			modelMatrixColliderLamp = glm::scale(modelMatrixColliderLamp, glm::vec3(0.5));
+			modelMatrixColliderLamp = glm::translate(modelMatrixColliderLamp, modelLamp1.getObb().c);
+			lampCollider.c = modelMatrixColliderLamp[3];
+			lampCollider.e = modelLamp1.getObb().e * glm::vec3(0.5);
+			std::get<0>(collidersOBB.find("lamp-" + std::to_string(i))->second) = lampCollider;
+		}
+
+		// Lamp2 colliders
+		for (int i = 0; i < lamp2Position.size(); i++){
+			AbstractModel::OBB lampCollider;
+			glm::mat4 modelMatrixColliderLamp = glm::mat4(1.0);
+			modelMatrixColliderLamp = glm::translate(modelMatrixColliderLamp, lamp2Position[i]);
+			modelMatrixColliderLamp = glm::rotate(modelMatrixColliderLamp, glm::radians(lamp1Orientation[i]), glm::vec3(0,1,0));
+			//glm::mat4 modelMatrixColliderLamp = glm::mat4(modelMatrixColliderLamp);
+			addOrUpdateColliders(collidersOBB, "lamp2-" + std::to_string(i), lampCollider, modelMatrixColliderLamp);
+
+			lampCollider.u = glm::quat_cast(modelMatrixColliderLamp);
+			modelMatrixColliderLamp = glm::scale(modelMatrixColliderLamp, glm::vec3(0.5));
+			modelMatrixColliderLamp = glm::translate(modelMatrixColliderLamp, modelLampPost2.getObb().c);
+			lampCollider.c = modelMatrixColliderLamp[3];
+			lampCollider.e = modelLampPost2.getObb().e * glm::vec3(0.5);
+			std::get<0>(collidersOBB.find("lamp2-" + std::to_string(i))->second) = lampCollider;
+		}
+
+		//Mayow Collider
+		AbstractModel::OBB mayowCollider;
+		glm::mat4 modelMatrixColliderMayow = glm::mat4(modelMatrixMayow);
+		modelMatrixColliderMayow = glm::rotate(modelMatrixColliderMayow, glm::radians(-90.0f), glm::vec3(1,0,0));;
+		mayowCollider.u = glm::quat_cast(modelMatrixColliderMayow);
+		modelMatrixColliderMayow= glm::scale(modelMatrixColliderMayow, glm::vec3(0.021f));
+		modelMatrixColliderMayow = glm::translate(modelMatrixColliderMayow, mayowModelAnimate.getObb().c);
+		mayowCollider.c= modelMatrixColliderMayow[3];
+		//0.75 es porque los brazos de mayow sobresalen
+		mayowCollider.e= mayowModelAnimate.getObb().e * glm::vec3(0.021f) * glm::vec3(0.75f);
+		addOrUpdateColliders(collidersOBB, "mayow",mayowCollider, modelMatrixMayow);
+
+		//Pruebas de Colision
+		std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4>>::iterator itObb1;
+		std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4>>::iterator itObb2;
+		std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4>>::iterator itSBB1;
+		std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4>>::iterator itSBB2;
+
+
+		//Referencias de OBB-OBB
+		for(itObb1 = collidersOBB.begin(); itObb1 != collidersOBB.end(); itObb1++){
+			bool isColision = false;
+			for(itObb2 = collidersOBB.begin(); itObb2 != collidersOBB.end(); itObb2++){
+				if(itObb1 != itObb2 && testOBBOBB(std::get<0>(itObb1->second), std::get<0>(itObb2->second))){
+					std::cout <<"Hay colision entre " << itObb1->first << " y el modelo " << itObb2->first << std::endl;
+					isColision = true;
+
+				}
+			}
+		}
+
+		//Referencias de SBB1-OBB1
+
+		for(itSBB1 = collidersSBB.begin(); itSBB1 != collidersSBB.end(); itSBB1++){
+			bool isColision = false;
+			for(itObb1 = collidersOBB.begin(); itObb1 != collidersOBB.end(); itObb1++){
+				if(testSphereOBox(std::get<0>(itSBB1->second), std::get<0>(itObb1->second))){
+					std::cout <<"Hay colision entre " << itSBB1->first << " y el modelo " << itObb1->first << std::endl;
+					isColision = true;
+				}
+			}
+		}
+
+		//Referencias de SBB1-SBB2
+
+		for(itSBB1 = collidersSBB.begin(); itSBB1 != collidersSBB.end(); itSBB1++){
+			bool isColision = false;
+			for(itSBB2 = collidersSBB.begin(); itSBB2 != collidersSBB.end() && !isColision; itSBB2++){
+				if(itSBB1 != itSBB2 && testSphereSphereIntersection(std::get<0>(itSBB1->second), std::get<0>(itSBB2->second))){
+					std::cout <<"Hay colision entre " << itSBB1->first << " y el modelo " << itSBB2->first << std::endl;
+					isColision = true;
+				}
+			}
+		}
+
 
 		/* Renders de Colliders */
 
@@ -1453,6 +1576,23 @@ void applicationLoop() {
 			sphereCollider.setColor(glm::vec4(1.0));
 			sphereCollider.enableWireMode();
 			sphereCollider.render(matrixCollider);
+			sphereCollider.enableFillMode();
+		}
+
+		//Render Collider de las OBB's
+
+		//Box OBB
+		std::map<std::string, std::tuple<AbstractModel::OBB, glm::mat4, glm::mat4>>::iterator itObb;
+		for(itObb = collidersOBB.begin(); itObb!=collidersOBB.end(); itObb++){
+			glm::mat4 matrixCollider = glm::mat4(1.0);
+		matrixCollider = glm::translate(matrixCollider, std::get<0>(itObb->second).c);
+		//Para obtener las medias dimensiones utilizamos e
+		matrixCollider = matrixCollider * glm::mat4(std::get<0>(itObb->second).u);
+		//Al acceder al elemento 0 accedemos al OBB
+		matrixCollider = glm::scale(matrixCollider, std::get<0>(itObb->second).e *2.0f);
+		boxCollider.enableWireMode();
+		boxCollider.render(matrixCollider);
+
 		}
 
 		glm::mat4 modelMatrixRayMay = glm::mat4(modelMatrixMayow);
@@ -1471,6 +1611,14 @@ void applicationLoop() {
 		modelMatrixRayMay = glm::scale(modelMatrixRayMay, glm::vec3(0.05, maxDistanceRay, 0.05));
 		//Renderizacion
 		rayModel.render(modelMatrixRayMay);
+
+		for(itSBB1 = collidersSBB.begin(); itSBB1!=collidersSBB.end(); itSBB1++){
+			float tRint;
+			if(raySphereIntersect(ori, targetRay, rayDirection, std::get<0>(itSBB1->second),tRint)){
+				std::cout << "Colision del rayo con el modelo" << itSBB1->first << std::endl;
+			}
+
+		}
 
 		
 		// Animaciones por keyframes dart Vader
