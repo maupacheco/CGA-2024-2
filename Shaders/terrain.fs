@@ -6,13 +6,11 @@ struct Light {
     vec3 specular;
 };
 
-//Sol
 struct  DirectionalLight{
     vec3 direction;
     Light light;
 };
 
-//Foco
 struct  PointLight{
     vec3 position;
     
@@ -23,7 +21,6 @@ struct  PointLight{
     float quadratic;
 };
 
-//linterna
 struct  SpotLight{
 	vec3 position;
 	vec3 direction;
@@ -40,7 +37,7 @@ struct  SpotLight{
 };
 
 const int MAX_POINT_LIGHTS = 20;
-const int MAX_SPOT_LIGHTS = 1;
+const int MAX_SPOT_LIGHTS = 3;
 
 out vec4 color;
 
@@ -77,7 +74,6 @@ vec3 calculateDirectionalLight(Light light, vec3 direction){
 	vec4 gColor = texture(gTexture, tiledCoords) * blendMapColor.g;
 	vec4 bColor = texture(bTexture, tiledCoords) * blendMapColor.b;
 	vec4 totalColor = backgroundColor + rColor + gColor + bColor;
-
 	
 	//vec4 backgroundTextureColor = texture(backgroundTexture, tiledCoords);
 	//vec4 totalColor = backgroundTextureColor;

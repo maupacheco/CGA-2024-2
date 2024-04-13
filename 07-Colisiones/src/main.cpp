@@ -39,6 +39,8 @@
 
 #include "Headers/AnimationUtils.h"
 
+#include "Headers/Colisiones.h"
+
 #define ARRAY_SIZE_IN_ELEMENTS(a) (sizeof(a)/sizeof(a[0]))
 
 int screenWidth;
@@ -63,6 +65,9 @@ Box boxWalls;
 Box boxHighway;
 Box boxLandingPad;
 Sphere esfera1(10, 10);
+
+Sphere sphereCollider(10,10);
+
 Cylinder rayModel (10,10,1.0,1.0,1.0);
 
 // Models complex instances
@@ -226,6 +231,11 @@ float GRAVITY = 1.81;
 double tmv = 0.0;
 double startTimeJump = 0.0;
 
+//Mapa de Colliderse
+std::map<std::string, std:: tuple<AbstractModel::SBB, glm::mat4, glm::mat4>> collidersSBB;
+std::map<std::string, std:: tuple<AbstractModel::OBB, glm::mat4, glm::mat4>> collidersOBB;
+
+
 // Variables animacion maquina de estados eclipse
 const float avance = 0.1;
 const float giroEclipse = 0.5f;
@@ -305,6 +315,10 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	skyboxSphere.init();
 	skyboxSphere.setShader(&shaderSkybox);
 	skyboxSphere.setScale(glm::vec3(20.0f, 20.0f, 20.0f));
+
+	sphereCollider.init();
+	sphereCollider.setShader(&shader);
+	sphereCollider.setColor(glm::vec4(0.5,0.5,0.5,1.0));
 
 	rayModel.init();
 	rayModel.setShader(&shader);
@@ -1416,6 +1430,30 @@ void applicationLoop() {
 		skyboxSphere.render();
 		glCullFace(oldCullFaceMode);
 		glDepthFunc(oldDepthFuncMode);
+
+		/* Creacion de colliders */
+
+
+		//Roca
+		AbstractModel::SBB rockCollider;
+		glm::mat4 modelMatrixColliderRock = glm::mat4(matrixModelRock);
+		modelMatrixColliderRock = glm::scale(modelMatrixColliderRock, glm::vec3(1.0));
+		modelMatrixColliderRock = glm::translate(modelMatrixColliderRock, modelRock.getSbb().c);
+		rockCollider.c = modelMatrixColliderRock[3];
+		rockCollider.ratio = modelRock.getSbb().ratio * 1.0;
+		addOrUpdateColliders(collidersSBB, "rock", rockCollider, matrixModelRock);
+
+		/* Renders de Colliders */
+
+		std::map<std::string, std::tuple<AbstractModel::SBB, glm::mat4, glm::mat4>>::iterator it;
+		for(it = collidersSBB.begin(); it != collidersSBB.end(); it++){
+			glm::mat4 matrixCollider = glm::mat4(1.0);
+			matrixCollider = glm::translate(matrixCollider, std::get<0>(it->second).c);
+			matrixCollider = glm::scale(matrixCollider, glm::vec3(std::get<0>(it->second).ratio * 2.0f));
+			sphereCollider.setColor(glm::vec4(1.0));
+			sphereCollider.enableWireMode();
+			sphereCollider.render(matrixCollider);
+		}
 
 		glm::mat4 modelMatrixRayMay = glm::mat4(modelMatrixMayow);
 		modelMatrixRayMay = glm::translate(modelMatrixRayMay, glm::vec3(0,1,0));
