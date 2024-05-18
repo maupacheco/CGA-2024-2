@@ -56,9 +56,15 @@ Shader shaderMulLighting;
 Shader shaderTerrain;
 
 //std::shared_ptr<FirstPersonCamera> camera(new FirstPersonCamera());
-std::shared_ptr<Camera> camera(new ThirdPersonCamera()); //instancia de la camara en 3ra persona
-//Variable para definir la distancia al player:
+std::shared_ptr<Camera> camera(new ThirdPersonCamera());
+std::shared_ptr<Camera> cameraBatman(new ThirdPersonCamera());
+std::shared_ptr<FirstPersonCamera> cameraOne(new FirstPersonCamera());
+//Variable para definir la distancia al objetivo:
 float distanceFromPlayer= 7.5;
+float distanceFromPlayerBatman= 7.0;
+bool firstPOV = false;
+bool thirdPOV = true;
+
 
 Sphere skyboxSphere(20, 20);
 Box boxCesped;
@@ -106,6 +112,8 @@ Model modelLampPost2;
 // Modelos animados
 // Mayow
 Model mayowModelAnimate;
+//Batman
+Model batmanModelAnimate;
 // Cowboy
 Model cowboyModelAnimate;
 // Guardian con lampara
@@ -150,7 +158,9 @@ glm::mat4 modelMatrixMayow = glm::mat4(1.0f);
 glm::mat4 modelMatrixCowboy = glm::mat4(1.0f);
 glm::mat4 modelMatrixGuardian = glm::mat4(1.0f);
 glm::mat4 modelMatrixCyborg = glm::mat4(1.0f);
+glm::mat4 modelMatrixBatman = glm::mat4(1.0f);
 
+int animationBatmanIndex = 8;
 int animationMayowIndex = 1;
 float rotDartHead = 0.0, rotDartLeftArm = 0.0, rotDartLeftHand = 0.0, rotDartRightArm = 0.0, rotDartRightHand = 0.0, rotDartLeftLeg = 0.0, rotDartRightLeg = 0.0;
 float rotBuzzHead = 0.0, rotBuzzLeftarm = 0.0, rotBuzzLeftForeArm = 0.0, rotBuzzLeftHand = 0.0;
@@ -410,16 +420,27 @@ void init(int width, int height, std::string strTitle, bool bFullScreen) {
 	cyborgModelAnimate.loadModel("../models/cyborg/cyborg.fbx");
 	cyborgModelAnimate.setShader(&shaderMulLighting);
 
+	//Batman
+	batmanModelAnimate.loadModel("../models/Batman_Beyond/Texture2D/batmanBeyon.fbx");
+	batmanModelAnimate.setShader(&shaderMulLighting);
+
 	// Terreno
 	terrain.init();
 	terrain.setShader(&shaderTerrain);
 
 	//camera->setPosition(glm::vec3(0.0, 3.0, 4.0));
 	//Se puede colocar la sensitividad y distancia en 3era persona
-	camera->setDistanceFromTarget(distanceFromPlayer);
+	//Para una camara en 1era persona. No se ocupa para una camara en tercera persona
+	camera->setPosition(glm::vec3(0.0, 3.0, 4.0));
+	cameraBatman->setPosition(glm::vec3(0.0, 3.0, 4.0));
+	//Se puede colocar la sensitividad y distancia en 3era persona
 	camera->setSensitivity(1.0f);
+	camera->setDistanceFromTarget(distanceFromPlayer);
+	//Camara del gato
+	cameraBatman->setSensitivity(1.0f);
+	cameraBatman->setDistanceFromTarget(distanceFromPlayerBatman);
 
-	
+	cameraOne->setPosition(glm::vec3(0.0, 3.0, 4.0));
 	// Carga de texturas para el skybox
 	Texture skyboxTexture = Texture("");
 	glGenTextures(1, &skyboxTextureID);
@@ -714,6 +735,7 @@ void destroy() {
 	cowboyModelAnimate.destroy();
 	guardianModelAnimate.destroy();
 	cyborgModelAnimate.destroy();
+	batmanModelAnimate.destroy();
 
 	// Terrains objects Delete
 	terrain.destroy();
@@ -778,30 +800,49 @@ void mouseButtonCallback(GLFWwindow *window, int button, int state, int mod) {
 
 void scrollCallback(GLFWwindow *window, double xoffset, double yoffset){
 	distanceFromPlayer -= yoffset;
+	distanceFromPlayerBatman -= yoffset;
 	camera->setDistanceFromTarget(distanceFromPlayer);
+	cameraBatman->setDistanceFromTarget(distanceFromPlayerBatman);
 }
 
 bool processInput(bool continueApplication) {
 	if (exitApp || glfwWindowShouldClose(window) != 0) {
 		return false;
 	}
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)==GLFW_PRESS)
-		camera->mouseMoveCamera(offsetX, 0.0, deltaTime);
-	
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS)
-		camera->mouseMoveCamera(0.0, offsetY, deltaTime);
 
-/*
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera->moveFrontCamera(true, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera->moveFrontCamera(false, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera->moveRightCamera(false, deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera->moveRightCamera(true, deltaTime);
-	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-		camera->mouseMoveCamera(offsetX, offsetY, deltaTime);*/
+//Camara en primera persona y tercer POV
+	//SI FUNCIONA, SOLO QUE LEE MUY RAPIDO, POR LO QUE SE TIENE QUE PRESIONAR AMBAS TECLAS Y SOLTARLAS RAPIDO
+	if(glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS){
+		if(glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_RELEASE && glfwGetKey(window, GLFW_KEY_K) == GLFW_RELEASE){
+			if (firstPOV == false){
+				firstPOV = true;
+			}else{
+				firstPOV = false;
+			}
+		}
+	}
+	if(firstPOV == true){
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			cameraOne->moveFrontCamera(true, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			cameraOne->moveFrontCamera(false, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			cameraOne->moveRightCamera(false, deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			cameraOne->moveRightCamera(true, deltaTime);
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+			cameraOne->mouseMoveCamera(offsetX, offsetY, deltaTime);
+	}
+	if(firstPOV == false){
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)==GLFW_PRESS){
+			camera->mouseMoveCamera(offsetX, offsetY, deltaTime);
+			if (modelSelected == 2)
+				cameraBatman->mouseMoveCamera(offsetX, offsetY, deltaTime);
+		}
+	}
+	
+	//Moimiento de la camara en 3era persona
+	
 	offsetX = 0;
 	offsetY = 0;
 
@@ -938,20 +979,37 @@ bool processInput(bool continueApplication) {
 		modelMatrixBuzz = glm::translate(modelMatrixBuzz, glm::vec3(0.0, 0.0, -0.02));
 
 	// Controles de mayow
-	if (modelSelected == 0 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
+	if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
 		modelMatrixMayow = glm::rotate(modelMatrixMayow, 0.02f, glm::vec3(0, 1, 0));
-		animationMayowIndex = 0;
-	} else if (modelSelected == 0 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
+		animationMayowIndex = 2;
+	} else if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
 		modelMatrixMayow = glm::rotate(modelMatrixMayow, -0.02f, glm::vec3(0, 1, 0));
-		animationMayowIndex = 0;
+		animationMayowIndex = 2;
+	}
+	if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
+		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0.0, 0.0, 0.02));
+		animationMayowIndex = 2;
+	}
+	else if (modelSelected == 2 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
+		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0.0, 0.0, -0.02));
+		animationMayowIndex = 2;
+	}
+
+	//
+	if (modelSelected == 0 && glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS){
+		modelMatrixBatman = glm::rotate(modelMatrixBatman, 0.02f, glm::vec3(0, 1, 0));
+		animationBatmanIndex = 14;
+	} else if (modelSelected == 0 && glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS){
+		modelMatrixBatman = glm::rotate(modelMatrixBatman, -0.02f, glm::vec3(0, 1, 0));
+		animationBatmanIndex = 14;
 	}
 	if (modelSelected == 0 && glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS){
-		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0.0, 0.0, 0.02));
-		animationMayowIndex = 0;
+		modelMatrixBatman = glm::translate(modelMatrixBatman, glm::vec3(0.0, 0.0, 0.02));
+		animationBatmanIndex = 14;
 	}
 	else if (modelSelected == 0 && glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS){
-		modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(0.0, 0.0, -0.02));
-		animationMayowIndex = 0;
+		modelMatrixBatman = glm::translate(modelMatrixBatman, glm::vec3(0.0, 0.0, -0.02));
+		animationBatmanIndex = 14;
 	}
 
 	glfwPollEvents();
@@ -964,6 +1022,8 @@ void applicationLoop() {
 	float anglePlayer;
 	glm::vec3 axis;
 	glm::vec3 axisPlayer;
+	glm::mat4 view;
+
 
 	modelMatrixEclipse = glm::translate(modelMatrixEclipse, glm::vec3(27.5, 0, 30.0));
 	modelMatrixEclipse = glm::rotate(modelMatrixEclipse, glm::radians(180.0f), glm::vec3(0, 1, 0));
@@ -989,6 +1049,8 @@ void applicationLoop() {
 
 	modelMatrixMayow = glm::translate(modelMatrixMayow, glm::vec3(13.0f, 0.05f, -5.0f));
 	modelMatrixMayow = glm::rotate(modelMatrixMayow, glm::radians(-90.0f), glm::vec3(0, 1, 0));
+
+	modelMatrixBatman = glm::translate(modelMatrixBatman, glm::vec3(-3.0f, 0.05f, -2.0f));
 
 	modelMatrixCowboy = glm::translate(modelMatrixCowboy, glm::vec3(13.0, 0.05, 0.0));
 
@@ -1027,13 +1089,18 @@ void applicationLoop() {
 
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f),
 				(float) screenWidth / (float) screenHeight, 0.01f, 100.0f);
-
-				if(modelSelected == 1){
+		
+		if (modelSelected == 0) {
+			axis = glm::axis(glm::quat_cast(modelMatrixBatman));
+			anglePlayer = glm::angle(glm::quat_cast(modelMatrixBatman));
+			anglePlayer -= 90.0;
+			axisPlayer = modelMatrixBatman[3];
+		}
+		else if(modelSelected == 1){
 			axisPlayer = modelMatrixDart[3];
 			anglePlayer = glm::angle(glm::quat_cast(modelMatrixDart));
 			axis = glm::axis(glm::quat_cast(modelMatrixDart));
-		}
-		else {
+		}else {
 			axisPlayer = modelMatrixMayow[3];
 			anglePlayer = glm::angle(glm::quat_cast(modelMatrixMayow));
 			axis = glm::axis(glm::quat_cast(modelMatrixMayow));
@@ -1047,12 +1114,20 @@ void applicationLoop() {
 		if (modelSelected == 1){
 			anglePlayer -= glm::radians(90.0f);
 		}
+		if (modelSelected == 0){
+			anglePlayer -= glm::radians(230.0f);
+		}
 		camera->setAngleTarget(anglePlayer);
 		camera->setCameraTarget(axisPlayer);
 		camera->updateCamera();
-		
-		glm::mat4 view = camera->getViewMatrix();
-
+		glm::mat4 view;
+		if(firstPOV){
+			view = cameraOne->getViewMatrix();
+		}
+		if(firstPOV == false){
+			view = camera->getViewMatrix();
+		}
+	
 		// Settea la matriz de vista y projection al shader con solo color
 		shader.setMatrix4("projection", 1, false, glm::value_ptr(projection));
 		shader.setMatrix4("view", 1, false, glm::value_ptr(view));
@@ -1087,6 +1162,20 @@ void applicationLoop() {
 		shaderTerrain.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
 		shaderTerrain.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.4, 0.4, 0.4)));
 		shaderTerrain.setVectorFloat3("directionalLight.direction", glm::value_ptr(glm::vec3(-1.0, 0.0, 0.0)));
+
+		//Camara primera persona
+		shaderMulLighting.setVectorFloat3("viewPos", glm::value_ptr(cameraOne->getPosition()));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.5, 0.5, 0.5)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
+		shaderMulLighting.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.4, 0.4, 0.4)));
+		shaderMulLighting.setVectorFloat3("directionalLight.direction", glm::value_ptr(glm::vec3(-1.0, 0.0, 0.0)));
+
+		shaderTerrain.setVectorFloat3("viewPos", glm::value_ptr(cameraOne->getPosition()));
+		shaderTerrain.setVectorFloat3("directionalLight.light.ambient", glm::value_ptr(glm::vec3(0.5, 0.5, 0.5)));
+		shaderTerrain.setVectorFloat3("directionalLight.light.diffuse", glm::value_ptr(glm::vec3(0.3, 0.3, 0.3)));
+		shaderTerrain.setVectorFloat3("directionalLight.light.specular", glm::value_ptr(glm::vec3(0.4, 0.4, 0.4)));
+		shaderTerrain.setVectorFloat3("directionalLight.direction", glm::value_ptr(glm::vec3(-1.0, 0.0, 0.0)));
+
 
 		/*******************************************
 		 * Propiedades SpotLights
@@ -1375,7 +1464,7 @@ void applicationLoop() {
 		modelMatrixMayowBody = glm::scale(modelMatrixMayowBody, glm::vec3(0.021f));
 		mayowModelAnimate.setAnimationIndex(animationMayowIndex);
 		mayowModelAnimate.render(modelMatrixMayowBody);
-		animationMayowIndex = 1;
+		animationMayowIndex = 2;
 
 		modelMatrixCowboy[3][1] = terrain.getHeightTerrain(modelMatrixCowboy[3][0], modelMatrixCowboy[3][2]);
 		glm::mat4 modelMatrixCowboyBody = glm::mat4(modelMatrixCowboy);
@@ -1392,6 +1481,22 @@ void applicationLoop() {
 		modelMatrixCyborgBody = glm::scale(modelMatrixCyborgBody, glm::vec3(0.009f));
 		cyborgModelAnimate.setAnimationIndex(1);
 		cyborgModelAnimate.render(modelMatrixCyborgBody);
+
+		//Batman Model
+		glm::vec3 ejeyBatman = glm::normalize(terrain.getNormalTerrain(modelMatrixBatman[3][0], modelMatrixBatman[3][2]));
+		glm::vec3 ejexBatman = glm::vec3(modelMatrixBatman[0]);
+		glm::vec3 ejezBatman = glm::normalize(glm::cross(ejexBatman, ejeyBatman));
+		ejex = glm::normalize(glm::cross(ejeyBatman, ejezBatman));
+		modelMatrixBatman[0] = glm::vec4(ejexBatman, 0.0);
+		modelMatrixBatman[1] = glm::vec4(ejeyBatman, 0.0);
+		modelMatrixBatman[2] = glm::vec4(ejezBatman, 0.0);
+		modelMatrixBatman[3][1] = terrain.getHeightTerrain(modelMatrixBatman[3][0], modelMatrixBatman[3][2]);
+		glm::mat4 modelMatrixBatmanBody = glm::mat4(modelMatrixBatman);
+		modelMatrixBatmanBody = glm::scale(modelMatrixBatmanBody, glm::vec3(0.005f));
+		batmanModelAnimate.setAnimationIndex(animationBatmanIndex);
+		batmanModelAnimate.render(modelMatrixBatmanBody);
+		animationBatmanIndex = 8;
+		
 
 		/*******************************************
 		 * Skybox
